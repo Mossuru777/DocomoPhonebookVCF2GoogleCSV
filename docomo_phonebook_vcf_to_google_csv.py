@@ -7,12 +7,13 @@ import vobject
 from lib_normalize_tel_num import normalize_tel_num
 
 
-def main(input_vcf_fh, output_csv_fh):
-    max_num_of_address, max_num_of_email, max_num_of_phone, max_num_of_url, phonebook = load_vcf(input_vcf_fh)
+def main(input_vcf_fh, output_csv_fh, no_my_contacts: bool):
+    max_num_of_address, max_num_of_email, max_num_of_phone, max_num_of_url, phonebook = load_vcf(input_vcf_fh, no_my_contacts)
     write_to_csv(output_csv_fh, phonebook, max_num_of_address, max_num_of_email, max_num_of_phone, max_num_of_url)
 
 
-def load_vcf(input_vcf_fh):
+def load_vcf(input_vcf_fh, no_my_contacts: bool):
+    # 電話・メール種別変換関数定義
     def tel_email_type_convert(type_str: str) -> str:
         if type_str == "HOME":
             return "Home"
@@ -90,7 +91,10 @@ def load_vcf(input_vcf_fh):
                 del base_email
         max_num_of_email = max(max_num_of_email, len(emails))
 
-        groups = ["* My Contacts"]
+        if no_my_contacts:
+            groups = []
+        else:
+            groups = ["* My Contacts"]
         if "x-dcm-gn-original" in record.contents:
             for group in record.contents["x-dcm-gn-original"]:
                 if group.value != "":
@@ -205,5 +209,6 @@ if __name__ == '__main__':
         description="Converts from VCF exported by docomo phone book to CSV of Google contact import format.")
     parser.add_argument("Input_VCF", type=argparse.FileType("r"), help="Input VCF FilePath")
     parser.add_argument("Output_CSV", type=argparse.FileType("w"), help="Output CSV FilePath")
+    parser.add_argument("--no-my-contacts", action="store_true", help="Do not add \"My Contacts\" group.")
     args = parser.parse_args()
-    main(args.Input_VCF, args.Output_CSV)
+    main(args.Input_VCF, args.Output_CSV, args.no_my_contacts)
